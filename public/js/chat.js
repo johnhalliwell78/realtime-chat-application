@@ -20,8 +20,32 @@ const {username, room} = Qs.parse(location.search, {
     ignoreQueryPrefix: true
 });
 
-console.log(username);
-console.log(room);
+const autoscroll = () => {
+    // New Message Element
+    // const $newMessage = $messageContainer.lastElementChild;
+    //
+    // // Height Of The New Message
+    // const newMessageStyles = getComputedStyle($newMessage);
+    // const newMessageMargin = parseInt(newMessageStyles.marginBottom);
+    // const newMessageHeight = $newMessage.offsetHeight + newMessageMargin;
+    //
+    // // Visible Height
+    // const visibleHeight = $messageContainer.offsetHeight;
+    //
+    // //Height Of Messages Container
+    // const containerHeight = $messageContainer.scrollHeight;
+    //
+    // // How far have i scrolled?
+    // const scrollOffset = $messageContainer.scrollTop + visibleHeight;
+    //
+    // if (containerHeight - newMessageHeight <= scrollOffset) {
+    //     $messageContainer.scrollTop = $messageContainer.scrollHeight
+    // }
+    // window.scrollTo(0, $messageContainer.scrollHeight);
+    $messageContainer.scrollTop = $messageContainer.scrollHeight
+
+};
+
 //
 // socket.on('countUpdated', (count) => {
 //     console.log("the count has been updated ", count);
@@ -81,6 +105,7 @@ socket.on('sendMessage', message => {
         createdAt: moment(message.createdAt).format('h:mm a')
     });
     $messageContainer.insertAdjacentHTML('beforeend', html);
+    autoscroll();
 });
 
 socket.on('roomDataChange', ({room, users}) => {
@@ -100,6 +125,7 @@ socket.on('locationMessage', (url) => {
         createdAt: moment(url.createdAt).format('h:mm a')
     });
     $messageContainer.insertAdjacentHTML('beforeend', htmlLocation);
+    autoscroll();
 });
 
 socket.emit('join', {
