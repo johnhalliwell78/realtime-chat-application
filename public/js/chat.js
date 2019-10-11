@@ -8,13 +8,20 @@ const $messageFormInput = document.getElementById('message');
 const $messageFormButton = document.querySelector('button');
 const $sendLocationButton = document.getElementById('send-location');
 const $messageContainer = document.getElementById('messages');
-
+const $sidebar = document.getElementById('sidebar');
 
 //Templates
-
 const messageTemplate = document.querySelector('#message-template').innerHTML;
 const locationMessageTemplate = document.querySelector('#location-message-template').innerHTML;
+const sidebarTemplate = document.querySelector('#sidebar-template').innerHTML;
 
+//Options
+const {username, room} = Qs.parse(location.search, {
+    ignoreQueryPrefix: true
+});
+
+console.log(username);
+console.log(room);
 //
 // socket.on('countUpdated', (count) => {
 //     console.log("the count has been updated ", count);
@@ -76,6 +83,16 @@ socket.on('sendMessage', message => {
     $messageContainer.insertAdjacentHTML('beforeend', html);
 });
 
+socket.on('roomDataChange', ({room, users}) => {
+    console.log(room);
+    console.log(users);
+
+    document.querySelector('#sidebar').innerHTML = Mustache.render(sidebarTemplate, {
+        room: room,
+        users: users
+    });
+});
+
 socket.on('locationMessage', (url) => {
     console.log(url);
     const htmlLocation = Mustache.render(locationMessageTemplate, {
@@ -84,3 +101,11 @@ socket.on('locationMessage', (url) => {
     });
     $messageContainer.insertAdjacentHTML('beforeend', htmlLocation);
 });
+
+socket.emit('join', {
+    username, room
+}, (error) => {
+    console.log(error)
+});
+
+

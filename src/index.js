@@ -5,7 +5,7 @@ const http = require('http');
 const socketio = require('socket.io');
 const Filter = require('bad-words');
 const {generateMessage, generateLocationMessage} = require('./utils/messages');
-
+const {addUser, getUser, getUsersInRoom, removeUser} = require('./utils/user');
 
 const app = express();
 const server = http.createServer(app);
@@ -30,26 +30,67 @@ io.on('connection', (socket) => {
     //     io.emit('countUpdated', count);
     // });
 
-    socket.emit('message', generateMessage('A New User Has Joined'));
+    socket.on('join', (options, callback) => {
+        const {error, user} = addUser({
+            id: socket.id,
+            ...options
+        });
+
+        if (error) {
+            return callback(error);
+        }
+
+        // sử dụng return để kết thúc
+
+        socket.join(user.room);
+
+        socket.emit('sendMessage', generateMessage('Welcome!'));
+        socket.broadcast.to(user.room).emit('sendMessage', generateMessage(`${user.username} has joined!`));
+
+        io.to(user.room).emit('roomDataChange', {
+            room: user.room,
+            users: getUsersInRoom(user.room)
+        });
+
+        callback();
+
+        // three ways to send from server to client
+        // socket.emit, io.emit, socket.broadcast.emit
+        // two ways to communicate in specific room
+        // io.to.emit, socket.broadcast.to.emit
+    });
 
     socket.on('sendMessage', (mess, callback) => {
+        const user = getUser(socket.id);
+
         const filter = new Filter();
         if (filter.isProfane(mess)) {
             return callback('Pro is not allowed');
         }
-        io.emit('sendMessage', generateMessage(mess));
+
+        io.to(user.room).emit('sendMessage', generateMessage(mess));
+
         callback('Delivered');
     });
 
     socket.on('disconnect', () => {
-        io.emit('message', 'A User Has Left');
+        const user = removeUser(socket.id);
+        if (user) {
+            io.to(user.room).emit('sendMessage', generateMessage(`${user.username} has left`));
+            io.to(user.room).emit('roomDataChange', {
+                room: user.room,
+                users: getUsersInRoom(user.room)
+            });
+        }
     });
 
     socket.on('send-location', (location, callback) => {
         // socket.broadcast.emit('message', 'location: ' + location);
-        console.log(location);
-        io.emit('locationMessage', generateLocationMessage(`https://google.com/maps?q=${location.latitude},${location.longitude}`));
-        callback('Location Shared');
+        const user = getUser(socket.id);
+        if (user) {
+            io.to(user.room).emit('locationMessage', generateLocationMessage(`https://google.com/maps?q=${location.latitude},${location.longitude}`));
+            callback('Location Shared');
+        }
     });
 });
 
